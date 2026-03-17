@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Bio-X - Recommandations produits</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; max-width: 1100px; }
+        textarea, input { width: 100%; margin-top: 6px; margin-bottom: 16px; padding: 8px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #f3f3f3; }
+        .error { color: #b00020; font-weight: bold; }
+        .hint { color: #555; font-size: 0.95em; }
+        button { padding: 10px 16px; }
+    </style>
+</head>
+<body>
+    <h1>Bio-X – Recommandations commerciales</h1>
+
+    <form method="post">
+        <label>Références produits source (une par ligne)</label>
+        <textarea name="references" rows="8">{{ form_data.references }}</textarea>
+
+        <label>Top K</label>
+        <input type="number" name="top_k" min="1" max="5" value="{{ form_data.top_k }}">
+
+        <button type="submit">Lancer les recommandations</button>
+    </form>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if recos %}
+        <h2>Résultats</h2>
+        <table>
+            <thead>
+                <tr>
+                    {% for col in recos[0].keys() %}
+                        <th>{{ col }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in recos %}
+                    <tr>
+                        {% for value in row.values() %}
+                            <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% elif recos is not none %}
+        <p class="hint">Aucun résultat retourné.</p>
+    {% endif %}
+</body>
+</html>

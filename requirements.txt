@@ -1,0 +1,12 @@
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.4.2
+sentence-transformers==2.7.0
+torch==2.2.2
+
+pymupdf==1.24.14
+openpyxl==3.1.5
+
+streamlit==1.35.0
+
+pytest==8.2.2
