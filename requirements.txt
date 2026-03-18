@@ -10,3 +10,19 @@ openpyxl==3.1.5
 streamlit==1.35.0
 
 pytest==8.2.2
+
+# Backend / API
+fastapi
+uvicorn
+pydantic
+
+# Frontend Flask
+flask
+requests
+
+# Env
+python-dotenv
+
+# embeddings
+transformers
+huggingface-hub
