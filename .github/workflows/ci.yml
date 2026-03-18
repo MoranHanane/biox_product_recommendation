@@ -23,10 +23,11 @@ jobs:
       run: |
         pip install -r requirements.txt
 
+    - name: Set env variables
+      run: |
+        echo "BIOX_API_KEY=dummy_key" >> $GITHUB_ENV
+
     - name: Run tests
       run: |
         pytest tests/
 
-    - name: Set env variables
-      run: |
-        echo "BIOX_API_KEY=dummy_key" >> $GITHUB_ENV
