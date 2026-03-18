@@ -1,4 +1,4 @@
-from Flask import app
+from app_flask import app
 
 def test_flask_health():
     client = app.test_client()
