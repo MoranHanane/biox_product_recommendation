@@ -27,6 +27,10 @@ jobs:
       run: |
         echo "BIOX_API_KEY=dummy_key" >> $GITHUB_ENV
 
+    - name: Add project to PYTHONPATH
+      run: |
+        echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
+
     - name: Run tests
       run: |
         pytest tests/
