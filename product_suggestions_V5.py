@@ -27,6 +27,14 @@ REQUIRED_INDEX_COLS = {
 
 
 def _validate_similarity_index(df: pd.DataFrame) -> None:
+    """
+    Vérifie que l’index de similarité respecte le format attendu.
+
+    Contrôle :
+    - Présence stricte des colonnes obligatoires
+
+    Lève une erreur bloquante si le format est invalide.
+    """
     missing = REQUIRED_INDEX_COLS - set(df.columns)
     if missing:
         raise ValueError(
@@ -39,13 +47,12 @@ def _validate_similarity_index(df: pd.DataFrame) -> None:
 
 
 # Helpers master mapping
-########################################
+###########################
 
 def build_master_maps(master_df: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
     """
-    Mapping par Reference (libellé complet) -> infos nécessaires aux overrides & MPC_range.
-    IMPORTANT: on ne modifie PAS les espaces internes (tes données métier doivent matcher Odoo).
-    On se contente de strip() pour robustesse sur espaces en bord.
+    Mapping par Reference (libellé complet) -> infos nécessaires aux overrides/substitutions & MPC_range.
+    IMPORTANT: on ne modifie PAS les espaces internes; On se contente de strip() pour robustesse sur espaces en bord.
     """
     required = {"Reference", "product_code_raw", "product_code_base", "species", "class_name", "MPC_range",
                 "commentaire_produit", "customer_product_suggestions"}
@@ -96,12 +103,12 @@ def make_product_suggestions_for_customer(
     A3) override vide -> algo normal (reweight déjà fait côté index)
 
     - override IGNORE les filtres, mais on met un message dans single_suggestion_reason
-    - "Not applicable" en toutes lettres quand non concerné
+    - "Not applicable" en toutes lettres quand non concerné (NB: REGLE A SUPPRIMER)
     """
 
-    # -------------------------------------------------
+    
     # 1) Validation entrées
-    # -------------------------------------------------
+    #################################
     required_lines_cols = {
         "product_code_raw",
         "product_code_base",
@@ -119,9 +126,9 @@ def make_product_suggestions_for_customer(
     if master_df is not None:
         master_map = build_master_maps(master_df)
 
-    # -------------------------------------------------
+    
     # 2) Panier client
-    # -------------------------------------------------
+    ################################
     basket = lines[(lines["CA_N"] > 0) | (lines["CA_N1"] > 0)].copy()
     if basket.empty:
         return pd.DataFrame()
@@ -135,9 +142,9 @@ def make_product_suggestions_for_customer(
     base_map = dict(zip(basket["product_code_raw"], basket["product_code_base"]))
     ref_map = dict(zip(basket["product_code_raw"], basket["Reference"]))
 
-    # -------------------------------------------------
+    
     # 3) Préparation index
-    # -------------------------------------------------
+    ################################
     sim = similarity_index.copy()
     sim["similarity"] = pd.to_numeric(sim["similarity"], errors="coerce").fillna(0.0)
 
@@ -165,9 +172,9 @@ def make_product_suggestions_for_customer(
                 b_mpc_map[str(code_raw)] = v.get("MPC_range", "Not applicable")
                 b_meta_map[str(code_raw)] = v  # pour retrouver Reference_B, species, class
 
-    # -------------------------------------------------
-    # 4) Suggestions (override prioritaire puis algo)
-    # -------------------------------------------------
+    #
+    # 4) Suggestions (override prioritaire, puis fallback algo quand override ne s'applique pas)
+    ################################################
     rows = []
 
     for code_a in purchased_codes:
@@ -353,11 +360,15 @@ def make_product_suggestions_for_customer(
 
 def export_suggestions_to_excel(df: pd.DataFrame, output_path: Path | str) -> None:
     """
-    Export Excel :
-    - en-têtes en gras
-    - lignes already_in_basket = True surlignées en vert
-    - colonnes codes masquées par défaut :
-      product_code_raw_A/B, product_code_base_A/B
+    Exporte les recommandations dans un fichier Excel formaté.
+
+    Mise en forme :
+    - En-têtes en gras
+    - Lignes déjà présentes dans le panier en gras
+    - Colonnes techniques masquées (codes produits)
+
+    Objectif :
+    - Fournir un livrable directement exploitable par les équipes métier.
     """
     output_path = Path(output_path)
 

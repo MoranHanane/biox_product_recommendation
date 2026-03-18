@@ -126,6 +126,22 @@ def recommendations_by_reference(
     req: RecommendationRequest,
     _: str = Security(verify_key),
 ):
+    """
+    Endpoint principal de recommandation produit.
+
+    Entrée :
+    - Liste de références produits client
+    - Paramètre top_k
+
+    Traitement :
+    - Appel du moteur de recommandation
+    - Application des règles métier
+
+    Sortie :
+    - Liste structurée de suggestions produits
+
+    Sécurisé via API Key.
+    """
     master_df = load_master_df()
     sim_idx = load_similarity_index()
     lines = build_lines_from_references(master_df, req.references)

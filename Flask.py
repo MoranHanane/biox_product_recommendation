@@ -13,11 +13,32 @@ API_KEY = os.getenv("BIOX_API_KEY")
 
 @app.route("/health")
 def health():
+    """
+    Endpoint de vérification de disponibilité du frontend Flask.
+
+    Retour :
+    - statut simple ("ok") pour monitoring ou tests.
+    """    
     return {"status": "ok", "app": "flask-front"}
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """
+    Point d’entrée principal du frontend Flask.
+
+    - Récupère les références produits saisies par l’utilisateur (textarea).
+    - Construit une requête POST vers l’API FastAPI (/recommendations/by-reference).
+    - Gère les erreurs :
+        * erreur API (code HTTP ≠ 200)
+        * erreur de connexion (timeout, API indisponible)
+    - Retourne un rendu HTML avec :
+        * les recommandations (recos)
+        * un message d’erreur éventuel
+        * les données du formulaire (pour persistance UI)
+
+    Sert d’interface simple entre utilisateur métier et moteur de recommandation.
+    """
     recos = None
     error = None
     form_data = {

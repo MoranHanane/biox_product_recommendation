@@ -1,12 +1,12 @@
-# ============================================================
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Product Similarity V5 — Multi-model + Diagnostics + Robust weights
 # - Source unique : master_df (DataFrame)
 # - Multi-modèles (mpnet/e5/bge/scibert) avec outputs préfixés
-# - Features: species, class_name, MPC_range + (ifu/validation/pathogen)
+# - Features: catégorielles (species, class_name, MPC_range) + textuelles (ifu/validation/pathogen)
 # - Redistribution non pénalisante si IFU/Validation/Pathogen manquants (presence-based scaling)
 # - Diagnostics: summary + top nearest/farthest + latence
 # - CSV index: "similarity" AVANT "Reference_B"
-# ============================================================
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import time
 import logging
