@@ -26,6 +26,7 @@ jobs:
     - name: Set env variables
       run: |
         echo "BIOX_API_KEY=dummy_key" >> $GITHUB_ENV
+        echo "FLASK_SECRET_KEY=test_secret" >> $GITHUB_ENV
 
     - name: Add project to PYTHONPATH
       run: |
