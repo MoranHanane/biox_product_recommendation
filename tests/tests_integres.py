@@ -13,12 +13,15 @@ Objectifs :
 Les tests utilisent pytest et reposent sur de petits jeux de données simulés.
 """
 
+import sys
 import pandas as pd
 from pathlib import Path
 
 from rebuild_customer_V5 import load_master
 from product_similarity_V5 import build_similarity_index
 from product_suggestions_V5 import make_product_suggestions_for_customer
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 # A) Tests de données et de pipeline
 
@@ -270,8 +273,13 @@ def test_train_test_split_logic():
 
 def test_train_test_split_real_dashboard():
 
+    base_dir = Path(__file__).resolve().parents[1]
+    dashboard_path = base_dir / "data" / "DAshboard_Odoo_Labo-X.xlsx"
+
+    assert dashboard_path.exists(), f"Fichier introuvable : {dashboard_path}"
+
     dashboard = pd.read_excel(
-        "DAshboard_Odoo_Labo-X.xlsx",
+        dashboard_path,
         header=None,
         skiprows=8
     )
@@ -287,9 +295,11 @@ def test_train_test_split_real_dashboard():
     train_products = set(lines[lines["CA_N1"] > 0]["Reference"])
     test_products  = set(lines[lines["CA_N"] > 0]["Reference"])
 
-    sugg = pd.read_excel(
-        "mpnet-customer_product_suggestions.xlsx"
-    )
+    sugg_path = base_dir / "data" / "mpnet-customer_product_suggestions.xlsx"
+
+    assert sugg_path.exists(), f"Fichier introuvable : {sugg_path}"
+
+    sugg = pd.read_excel(sugg_path)
 
     sugg = sugg[sugg["Reference_A"].isin(train_products)]
 
@@ -316,7 +326,7 @@ import json
 import pytest
 from unittest.mock import patch
 
-from Flask import app
+from app_flask import app
 
 
 @pytest.fixture
@@ -326,6 +336,9 @@ def client():
 
 
 def test_flask_to_api_integration_success(client):
+    with client.session_transaction() as sess:
+        sess["username"] = "tester"
+        sess["role"] = "admin"
     mock_api_response = [
         {
             "Reference_A": "TEST_REF",
@@ -340,7 +353,7 @@ def test_flask_to_api_integration_success(client):
         def json(self):
             return mock_api_response
 
-    with patch("Flask.requests.post", return_value=MockResponse()) as mock_post:
+    with patch("app_flask.requests.post", return_value=MockResponse()) as mock_post:
         response = client.post(
             "/",
             data={
@@ -359,6 +372,9 @@ def test_flask_to_api_integration_success(client):
 
 
 def test_flask_to_api_integration_api_error(client):
+    with client.session_transaction() as sess:
+        sess["username"] = "tester"
+        sess["role"] = "admin"
     class MockResponse:
         status_code = 500
         text = "Internal Server Error "
@@ -366,7 +382,7 @@ def test_flask_to_api_integration_api_error(client):
         def json(self):
             return {"error": "Internal error"}
 
-    with patch("Flask.requests.post", return_value=MockResponse()):
+    with patch("app_flask.requests.post", return_value=MockResponse()):
         response = client.post(
             "/",
             data={
@@ -380,7 +396,10 @@ def test_flask_to_api_integration_api_error(client):
 
 
 def test_flask_to_api_integration_connection_error(client):
-    with patch("Flask.requests.post", side_effect=Exception("Connection error")):
+    with client.session_transaction() as sess:
+        sess["username"] = "tester"
+        sess["role"] = "admin"
+    with patch("app_flask.requests.post", side_effect=Exception("Connection error")):
         response = client.post(
             "/",
             data={

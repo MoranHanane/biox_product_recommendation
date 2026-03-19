@@ -110,7 +110,7 @@ def _load_hf_transformers(model_name: str):
 
 def _hf_encode_texts_mean_pool(texts: List[str], tok, mdl, torch, batch_size: int = 16) -> np.ndarray:
     """
-    Encodage HF “mean pooling” (robuste pour SciBERT).
+    Encodage HF “mean pooling” .
     """
     def mean_pool(last_hidden, attn_mask):
         mask = attn_mask.unsqueeze(-1).expand(last_hidden.size()).float()
@@ -169,7 +169,7 @@ def embed_pdfs_from_links(
         }
         return out, metrics
 
-    # HF (SciBERT) : on encode les chunks avec mean-pooling
+    #  on encode les chunks avec mean-pooling
     tok, mdl, torch = _load_hf_transformers(MODELS[model_key][0])
     dim = mdl.config.hidden_size
     out = np.zeros((len(links), dim), dtype="float32")
