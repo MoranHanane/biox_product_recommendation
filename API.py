@@ -11,9 +11,32 @@ from fastapi.security import APIKeyHeader
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
 
+import json
+from datetime import datetime
+from pathlib import Path
+
+
 from product_suggestions_V5 import make_product_suggestions_for_customer
 
+#LOGS et GESTIONS PATHS 
+#########
+LOG_FILE = Path("logs_api.jsonl")
 
+def log_prediction(event_type, payload):
+    log_entry = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "event": event_type,
+        "payload": payload
+    }
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(log_entry) + "\n")
+
+
+def resolve_path(p: str) -> Path:
+    path = Path(p)
+    if not path.is_absolute():
+        path = Path(__file__).parent / path
+    return path
 
 # Chargement .env
 ##################
@@ -22,7 +45,7 @@ load_dotenv()
 
 API_KEY = os.getenv("BIOX_API_KEY")
 MASTER_XLSX = os.getenv("BIOX_MASTER_XLSX", "product_catalog_V11.xlsx")
-INDEX_CSV = os.getenv("BIOX_INDEX_CSV", "mpnet-product_similarity_index.csv")
+INDEX_CSV = os.getenv("BIOX_INDEX_CSV", "data/mpnet-product_similarity_index.csv")
 MODEL_NAME = os.getenv("BIOX_MODEL_NAME", "mpnet")
 
 if not API_KEY:
@@ -68,7 +91,7 @@ def load_master_df() -> pd.DataFrame:
 
 
 def load_similarity_index() -> pd.DataFrame:
-    path = Path(INDEX_CSV)
+    path = resolve_path(INDEX_CSV)
     if not path.exists():
         raise HTTPException(status_code=500, detail=f"Index introuvable: {path}")
     return pd.read_csv(path, low_memory=False)
@@ -122,38 +145,38 @@ def models(_: str = Security(verify_key)):
 
 
 @app.post("/recommendations/by-reference")
-def recommendations_by_reference(
-    req: RecommendationRequest,
-    _: str = Security(verify_key),
-):
-    """
-    Endpoint principal de recommandation produit.
+def recommendations_by_reference(req: RecommendationRequest, _: str = Security(verify_key)):
 
-    Entrée :
-    - Liste de références produits client
-    - Paramètre top_k
+    log_prediction("request", {
+        "references": req.references,
+        "top_k": req.top_k
+    })
 
-    Traitement :
-    - Appel du moteur de recommandation
-    - Application des règles métier
+    try:
+        master_df = load_master_df()
+        sim_idx = load_similarity_index()
+        lines = build_lines_from_references(master_df, req.references)
 
-    Sortie :
-    - Liste structurée de suggestions produits
+        result = make_product_suggestions_for_customer(
+            lines=lines,
+            similarity_index=sim_idx,
+            master_df=master_df,
+            top_k=req.top_k,
+        )
 
-    Sécurisé via API Key.
-    """
-    master_df = load_master_df()
-    sim_idx = load_similarity_index()
-    lines = build_lines_from_references(master_df, req.references)
+        output = result.to_dict(orient="records")
 
-    result = make_product_suggestions_for_customer(
-        lines=lines,
-        similarity_index=sim_idx,
-        master_df=master_df,
-        top_k=req.top_k,
-    )
+        log_prediction("response", {
+            "nb_results": len(output)
+        })
 
-    return result.to_dict(orient="records")
+        return output
+
+    except Exception as e:
+        log_prediction("error", {
+            "error": str(e)
+        })
+        raise
 
 
 # Tests
@@ -183,8 +206,8 @@ def test_auth_forbidden():
 
 
 def test_recommendations_by_reference():
-    master_path = Path(MASTER_XLSX)
-    index_path = Path(INDEX_CSV)
+    master_path = resolve_path(MASTER_XLSX)
+    index_path = resolve_path(INDEX_CSV)
 
     if not master_path.exists() or not index_path.exists():
         pytest.skip("Master ou index absent localement pour ce test.")
